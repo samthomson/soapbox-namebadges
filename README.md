@@ -4,6 +4,7 @@ Generate multi-color **3MF** models for **Bambu Studio + AMS**:
 
 - **QR plate** — flat plate with raised QR code
 - **Container** — bayonet-mount box with QR on the lid
+- **Badge** — landscape name badge with QR + profile text
 
 ## Setup
 
@@ -56,6 +57,29 @@ python generate_container.py "https://treasures.to/naddr1qfjunkbbbqqqqqqqqqqqqqq
 **`-t`**: use a different container template 3MF.  
 `python generate_container.py --help`
 
+## Name badges — `generate_badge.py`
+
+Landscape badge with:
+
+- big QR on the left
+- name / shape / company / city on the right
+- optional right-edge notch accent
+
+Single badge:
+
+```bash
+python generate_badge.py "https://ditto.pub/follow/npub1yzfm42rzr3dj2h50flpvdl0uzrv22kv2y4ghve804w5xqu6lzqcqkyfxu5" --name "Sam" --shape "🏔️" --event-line "NOSTR WEEK // OSLO 2026" --company-font "Arial"
+```
+
+From team JSON:
+
+```bash
+python generate_badge.py --members-file team_members.json --member "Sam"
+python generate_badge.py --members-file team_members.json --only-oslo
+```
+
+`python generate_badge.py --help`
+
 ## Print
 
 Open any `.3mf` in Bambu Studio, map green / white to AMS slots, slice, print.
@@ -63,11 +87,13 @@ Open any `.3mf` in Bambu Studio, map green / white to AMS slots, slice, print.
 ## Layout
 
 | File | Role |
-|------|------|
+| ---- | ---- |
 | `generate_3d_qr.py` | One URL → QR plate `.3mf` |
 | `generate_all.py` | Batch plates from a URL list file |
 | `generate_container.py` | One URL → container with QR lid `.3mf` |
+| `generate_badge.py` | One/batch people → badge `.3mf` |
 | `containers/bayonetbox.3mf` | Container template (bundled) |
+| `team_members.json` | Team profile list used for badge batch generation |
 | `urls_example.text` | Example URL list; copy to `urls.txt` |
 
 Generated files go in `output/` (gitignored). Keep your real URL list in `urls.txt` (gitignored).
