@@ -331,7 +331,7 @@ def build_qr_mesh(url, qr_size_mm, center_x, center_y, base_z, qr_height=0.9):
     return mesh
 
 
-def build_qr_background_mesh(center_x, center_y, qr_size_mm, base_z, layer_height=0.6, pad=1.2):
+def build_qr_background_mesh(center_x, center_y, qr_size_mm, base_z, layer_height=0.6, pad=0.0):
     """Create a white underlay patch behind the QR area."""
     width = qr_size_mm + pad
     depth = qr_size_mm + pad
@@ -664,8 +664,9 @@ def create_badge(
         raise ValueError("Badge height must be at least QR size + 2.5mm.")
 
     left_margin = 1.8
+    hole_qr_inset = left_margin + 1.2
     qr_gap = 2.2
-    qr_center_x = -badge_width / 2 + left_margin + qr_size_mm / 2
+    qr_center_x = -badge_width / 2 + hole_qr_inset + qr_size_mm / 2
     slot_top_margin = 5.2
     slot_width = 3.0
     # Keep equal visual spacing: hole-to-QR top == QR bottom-to-badge edge.
@@ -690,7 +691,7 @@ def create_badge(
         base_height=base_height,
         slot_top_margin=slot_top_margin,
         slot_width=slot_width,
-        slot_side_margin=left_margin + 1.2,
+        slot_side_margin=hole_qr_inset,
     )
     # Sink a tiny amount into the white underlay to avoid visual hover gaps.
     qr_mesh = build_qr_mesh(
@@ -712,7 +713,7 @@ def create_badge(
     black_mesh = qr_mesh
     orange_mesh = None
 
-    line_x = panel_left + 0.9
+    line_x = panel_left + 2.0
     top_line_y = qr_top - 5.3
     name_y = qr_top - 17.0
     shape_y = qr_top - 33.0
@@ -747,17 +748,18 @@ def create_badge(
         font_candidates=[company_font, "Outfit", "Arial"],
     )
 
-    # Name line: > Sam |, left-aligned in terminal style.
+    # Name line: centered block, aligned with shape/event center.
     mono_fonts = [name_font, "Menlo", "Menlo-Regular", "SFMono-Regular", "Courier New", "Monaco"]
     name_text = (ascii_text_or_none(name) or "unknown").lower()
     marker_w = 3.0
-    gap = 0.9
-    avail_for_name = panel_width - marker_w - gap - marker_w - 0.7
+    gap = 0.8
+    avail_for_name = panel_width - marker_w - gap - marker_w - 2.0
     name_size = estimate_mono_size_for_width(name_text, avail_for_name, 6.1, 3.0)
     name_w = len(name_text) * name_size * 0.62
-    name_left = line_x + marker_w + gap
-    name_center = name_left + name_w / 2
-    bar_left = name_left + name_w + 0.7
+    text_center = (line_x + panel_right) / 2
+    name_center = text_center
+    name_left = name_center - name_w / 2
+    bar_left = name_center + name_w / 2 + gap
 
     name_outline_h = max(0.5, text_height * 0.55)
     name_fill_h = max(0.5, text_height * 0.55)
@@ -781,7 +783,7 @@ def create_badge(
     black_mesh = add_text_line(
         black_mesh,
         ">",
-        line_x + marker_w / 2,
+        name_left - gap - marker_w / 2,
         name_y,
         name_size,
         text_height,
