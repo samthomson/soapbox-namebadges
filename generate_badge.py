@@ -403,6 +403,111 @@ def add_text_line(mesh, text, x, y, size, height, base_height, font_candidates, 
     return mesh
 
 
+def add_text_with_outline(
+    fill_mesh,
+    outline_mesh,
+    text,
+    x,
+    y,
+    size,
+    height,
+    base_height,
+    font_candidates,
+    kind="regular",
+    outline_delta=0.6,
+    top_lift=0.18,
+):
+    """Render text twice: larger underlay + normal foreground."""
+    outline_mesh = add_text_line(
+        outline_mesh,
+        text,
+        x,
+        y,
+        size + outline_delta,
+        height,
+        base_height,
+        font_candidates=font_candidates,
+        kind=kind,
+    )
+    fill_mesh = add_text_line(
+        fill_mesh,
+        text,
+        x,
+        y,
+        size,
+        height,
+        base_height,
+        font_candidates=font_candidates,
+        kind=kind,
+    )
+    if fill_mesh is not None:
+        fill_mesh.vertices[:, 2] += top_lift
+    return fill_mesh, outline_mesh
+
+
+def add_monospace_text_with_outline(
+    fill_mesh,
+    outline_mesh,
+    text,
+    center_x,
+    y,
+    size,
+    height,
+    base_height,
+    font_candidates,
+    kind="regular",
+    outline_offset=0.22,
+    top_lift=0.06,
+):
+    """Draw outlined text one glyph at a time to keep alignment tight."""
+    text = text or ""
+    if not text:
+        return fill_mesh, outline_mesh
+
+    pitch = size * 0.62
+    start_x = center_x - ((len(text) - 1) * pitch) / 2
+    outline_offsets = [
+        (-outline_offset, 0.0),
+        (outline_offset, 0.0),
+        (0.0, -outline_offset),
+        (0.0, outline_offset),
+        (-outline_offset * 0.75, -outline_offset * 0.75),
+        (outline_offset * 0.75, -outline_offset * 0.75),
+        (-outline_offset * 0.75, outline_offset * 0.75),
+        (outline_offset * 0.75, outline_offset * 0.75),
+    ]
+    for i, ch in enumerate(text):
+        if ch == " ":
+            continue
+        x = start_x + i * pitch
+        for dx, dy in outline_offsets:
+            outline_mesh = add_text_line(
+                outline_mesh,
+                ch,
+                x + dx,
+                y + dy,
+                size,
+                height,
+                base_height,
+                font_candidates=font_candidates,
+                kind=kind,
+            )
+        fill_mesh = add_text_line(
+            fill_mesh,
+            ch,
+            x,
+            y,
+            size,
+            height,
+            base_height,
+            font_candidates=font_candidates,
+            kind=kind,
+        )
+        if fill_mesh is not None:
+            fill_mesh = lift_mesh(fill_mesh, top_lift)
+    return fill_mesh, outline_mesh
+
+
 def build_pixel_marker_mesh(kind, center_x, center_y, target_width_mm, base_z, height):
     if kind == ">":
         mask = np.array(
@@ -445,7 +550,16 @@ def build_logo_icon_mesh(logo_path, center_x, center_y, target_width_mm, base_z,
     return mask_to_mesh(mask, center_x, center_y, target_width_mm, base_z, height, max_width_px=700)
 
 
-def build_shape_mesh(shape, center_x, center_y, base_z, height, max_width_mm=27.0, max_height_mm=16.0):
+def build_shape_mesh(
+    shape,
+    center_x,
+    center_y,
+    base_z,
+    height,
+    max_width_mm=27.0,
+    max_height_mm=16.0,
+    outline_iterations=0,
+):
     shape = (shape or "").strip()
     if not shape:
         return None
@@ -504,11 +618,22 @@ def build_shape_mesh(shape, center_x, center_y, base_z, height, max_width_mm=27.
 
     for mask in candidate_masks:
         target_w_mm = fit_width_to_box(mask, max_width_mm=max_width_mm, max_height_mm=max_height_mm)
-        mesh = mask_to_mesh(mask, center_x, center_y, target_w_mm, base_z, height, max_width_px=260)
+        render_mask = mask
+        if outline_iterations > 0 and SCIPY_AVAILABLE:
+            render_mask = ndimage.binary_dilation(mask, iterations=outline_iterations)
+        mesh = mask_to_mesh(render_mask, center_x, center_y, target_w_mm, base_z, height, max_width_px=260)
         if mesh is not None:
             return mesh
 
     return None
+
+
+def lift_mesh(mesh, dz):
+    """Return mesh with all vertices shifted up by dz."""
+    if mesh is None or dz == 0:
+        return mesh
+    mesh.vertices[:, 2] += dz
+    return mesh
 
 
 def create_badge(
@@ -560,12 +685,13 @@ def create_badge(
         slot_width=slot_width,
         slot_side_margin=left_margin + 1.2,
     )
+    # Sink a tiny amount into the white underlay to avoid visual hover gaps.
     qr_mesh = build_qr_mesh(
         url=url,
         qr_size_mm=qr_size_mm,
         center_x=qr_center_x,
         center_y=qr_center_y,
-        base_z=base_height + qr_background_height,
+        base_z=base_height + qr_background_height - 0.03,
         qr_height=qr_height,
     )
     qr_bg_mesh = build_qr_background_mesh(
@@ -626,8 +752,9 @@ def create_badge(
     name_center = name_left + name_w / 2
     bar_left = name_left + name_w + 0.7
 
-    purple_mesh = add_text_line(
+    purple_mesh, blue_mesh = add_monospace_text_with_outline(
         purple_mesh,
+        blue_mesh,
         name_text,
         name_center,
         name_y,
@@ -636,6 +763,8 @@ def create_badge(
         base_height,
         font_candidates=mono_fonts,
         kind="regular",
+        outline_offset=0.20,
+        top_lift=0.06,
     )
     # Render prompt/cursor in monospace so it reads like terminal input.
     blue_mesh = add_text_line(
@@ -673,7 +802,20 @@ def create_badge(
         max_width_mm=shape_box_width,
         max_height_mm=shape_box_height,
     )
+    shape_outline_mesh = build_shape_mesh(
+        shape,
+        (line_x + panel_right) / 2,
+        shape_y + 1.0,
+        base_height,
+        text_height,
+        max_width_mm=shape_box_width * 1.08,
+        max_height_mm=shape_box_height * 1.08,
+        outline_iterations=2,
+    )
+    if shape_outline_mesh is not None:
+        blue_mesh = concat_meshes(blue_mesh, shape_outline_mesh)
     if shape_mesh is not None:
+        shape_mesh = lift_mesh(shape_mesh, 0.06)
         purple_mesh = concat_meshes(purple_mesh, shape_mesh)
     else:
         purple_mesh = add_text_line(
@@ -691,8 +833,9 @@ def create_badge(
     # Event line.
     event = ascii_text_or_none(event_line) or "OSLO 2026"
     event_size = estimate_mono_size_for_width(event, panel_width - 0.5, 4.4, 3.2)
-    purple_mesh = add_text_line(
+    purple_mesh, blue_mesh = add_monospace_text_with_outline(
         purple_mesh,
+        blue_mesh,
         event,
         (line_x + panel_right) / 2,
         event_y,
@@ -701,6 +844,8 @@ def create_badge(
         base_height,
         font_candidates=mono_fonts,
         kind="bold",
+        outline_offset=0.18,
+        top_lift=0.05,
     )
 
     if blue_mesh is None:
