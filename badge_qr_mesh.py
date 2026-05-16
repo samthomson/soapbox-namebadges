@@ -216,7 +216,7 @@ def create_3d_qr_code_multicolor(url, output_file, qr_size_mm=50, base_height=1.
 {qr_tris}        </triangles>
       </mesh>
     </object>
-    <object id="3" name="treasure_qr" type="model">
+    <object id="3" name="badge_qr" type="model">
       <components>
         <component objectid="1" />
         <component objectid="2" />
@@ -251,7 +251,7 @@ def create_3d_qr_code_multicolor(url, output_file, qr_size_mm=50, base_height=1.
     <metadata key="name" value="qr_white"/>
   </object>
   <object id="3">
-    <metadata key="name" value="treasure_qr"/>
+    <metadata key="name" value="badge_qr"/>
     <part id="1">
       <metadata key="extruder" value="1"/>
     </part>
@@ -426,7 +426,7 @@ def create_3d_qr_code_inlay(url, output_file, qr_size_mm=50, base_height=1.8, in
 {qr_tris}        </triangles>
       </mesh>
     </object>
-    <object id="3" name="treasure_qr_inlay" type="model">
+    <object id="3" name="badge_qr_inlay" type="model">
       <components>
         <component objectid="1" />
         <component objectid="2" />
@@ -461,7 +461,7 @@ def create_3d_qr_code_inlay(url, output_file, qr_size_mm=50, base_height=1.8, in
     <metadata key="name" value="qr_white"/>
   </object>
   <object id="3">
-    <metadata key="name" value="treasure_qr_inlay"/>
+    <metadata key="name" value="badge_qr_inlay"/>
     <part id="1">
       <metadata key="extruder" value="1"/>
     </part>
@@ -525,13 +525,13 @@ Size presets:
   Or use any number (e.g. 45)
 
 Examples:
-  python generate_3d_qr.py 'https://treasures.to/naddr1qfjunkaaaqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqujunkaaa' -o output.3mf -s medium
-  python generate_3d_qr.py 'https://treasures.to/naddr1qfjunkbbbqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqujunkbbb' -o output.3mf -s large --style inlay
+  python badge_qr_mesh.py 'https://example.com/profile/sam' -o output.3mf -s medium
+  python badge_qr_mesh.py 'https://example.com/profile/alex' -o output.3mf -s large --style inlay
         """
     )
     
     parser.add_argument("url", help="URL to encode in QR code")
-    parser.add_argument("-o", "--output", default=None, help="Output file path (default: output/treasure_qr_<id>.3mf)")
+    parser.add_argument("-o", "--output", default=None, help="Output file path (default: output/badge_qr_<id>.3mf)")
     parser.add_argument("-s", "--size", default="medium", help="Size preset or mm value (default: medium)")
     parser.add_argument("--style", choices=["raised", "inlay"], default="raised", 
                         help="raised=QR on top, inlay=flat surface (default: raised)")
@@ -542,6 +542,6 @@ Examples:
     if args.output is None:
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         url_hash = hashlib.md5(args.url.encode()).hexdigest()[:8]
-        args.output = os.path.join(OUTPUT_DIR, f"treasure_qr_{url_hash}.3mf")
+        args.output = os.path.join(OUTPUT_DIR, f"badge_qr_{url_hash}.3mf")
     
     generate(args.url, args.output, args.size, args.style)

@@ -19,7 +19,7 @@ import numpy as np
 import trimesh
 from PIL import Image, ImageDraw, ImageFont
 
-from generate_3d_qr import OUTPUT_DIR, create_box_triangles, generate_qr_code, parse_size, qr_to_array
+from badge_qr_mesh import OUTPUT_DIR, create_box_triangles, generate_qr_code, parse_size, qr_to_array
 
 try:
     import cadquery as cq
