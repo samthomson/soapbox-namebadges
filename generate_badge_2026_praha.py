@@ -44,7 +44,7 @@ except ImportError:
 
 
 DEFAULT_LOGO = "/Users/samthomson/Desktop/logo.svg"
-DEFAULT_EVENT = "OSLO 2026"
+DEFAULT_EVENT = "PRAHA 2026"
 DEFAULT_COMPANY_FONT = "Outfit"
 DEFAULT_NAME_FONT = "Menlo"
 BADGE_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "namebadges")
@@ -858,26 +858,30 @@ def create_badge(
         )
 
     # Event line.
-    event = ascii_text_or_none(event_line) or "OSLO 2026"
-    event_size = estimate_mono_size_for_width(event, panel_width - 0.5, 4.4, 3.2)
-    event_outline_h = max(0.5, text_height * 0.60)
-    event_fill_h = max(0.5, text_height * 0.60)
-    _, black_mesh = add_monospace_text_with_outline(
-        None,
-        black_mesh,
-        event,
-        (line_x + panel_right) / 2,
-        event_y,
-        event_size,
-        max(1.1, text_height * 1.2),
-        detail_base_z,
-        font_candidates=mono_fonts,
-        kind="bold",
-        outline_offset=0.18,
-        top_lift=max(0.0, event_outline_h - 0.02),
-        outline_height=event_outline_h,
-        fill_height=event_fill_h,
-    )
+    event = ascii_text_or_none(event_line)
+    if event:
+        # Smaller than Oslo, but keep a print-safe minimum so slicing doesn't drop it.
+        event_size = estimate_mono_size_for_width(event, panel_width - 0.5, 4.4, 3.2) * 0.88
+        event_size = max(3.2, event_size)
+        event_outline_h = max(0.55, text_height * 0.62)
+        event_fill_h = max(0.55, text_height * 0.62)
+        _, black_mesh = add_monospace_text_with_outline(
+            None,
+            black_mesh,
+            event,
+            (line_x + panel_right) / 2,
+            event_y,
+            event_size,
+            max(1.1, text_height * 1.2),
+            detail_base_z,
+            font_candidates=mono_fonts,
+            kind="regular",
+            outline_offset=0.14,
+            top_lift=max(0.0, event_outline_h - 0.02),
+            outline_height=event_outline_h,
+            fill_height=event_fill_h,
+            pitch_factor=0.64,
+        )
 
     if orange_mesh is None:
         # Safety fallback so object id remains valid even if text/logo fail.
