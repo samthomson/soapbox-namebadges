@@ -29,13 +29,15 @@ Create one primary script per conference and evolve that script over time.
 
 ## Conference Versions
 
-| Conference | Script | Color 1 (Base) | Color 2 (QR Background) | Color 3 (QR Modules) | Color 4 (Text/Logo) |
+| Conference | Script | Background | QR Back | Logo / Primary | QR Fore / Accent |
 | --- | --- | --- | --- | --- | --- |
-| Oslo 2026 | `generate_badge_2026_oslo.py` | Green | White | Black | Red |
-| _TBD_ | `generate_badge_<year>_<conference>.py` | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
+| Oslo 2026 | `generate_badge_2026_oslo.py` | T-purple | White | Orange | Gurple |
+| Czech 2026 (Praha) | `generate_badge_2026_praha.py` | T-blue | White | Orange | Green |
+| Kenya (planned) | `generate_badge_<year>_kenya.py` | Wood | Orange | Red | Green |
 
 ## Files
 
 - `generate_badge_2026_oslo.py` - primary Oslo 2026 badge generator
+- `generate_badge_2026_praha.py` - Praha variant scaffold copied from Oslo
 - `badge_qr_mesh.py` - shared QR mesh utility used by conference generators
 - `team_members.json` - input data for batch generation
