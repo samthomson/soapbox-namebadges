@@ -643,6 +643,315 @@ def lift_mesh(mesh, dz):
     return mesh
 
 
+def render_emoji_mask(emoji_char):
+    """Rasterize an emoji glyph to a binary alpha mask via the Apple Color Emoji font."""
+    try:
+        font = None
+        for size in (160, 128, 96, 64, 48):
+            try:
+                font = ImageFont.truetype("/System/Library/Fonts/Apple Color Emoji.ttc", size)
+                break
+            except Exception:
+                continue
+        if font is None:
+            return None
+        canvas = Image.new("RGBA", (480, 480), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(canvas)
+        bbox = draw.textbbox((0, 0), emoji_char, font=font, embedded_color=True)
+        if not bbox:
+            return None
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
+        if w <= 0 or h <= 0:
+            return None
+        x = (480 - w) / 2 - bbox[0]
+        y = (480 - h) / 2 - bbox[1]
+        draw.text((x, y), emoji_char, font=font, embedded_color=True)
+        alpha = np.array(canvas)[:, :, 3] > 10
+        if not np.any(alpha):
+            return None
+        return alpha
+    except Exception:
+        return None
+
+
+def build_lion_body_mask():
+    """Compose a believable full-body lion silhouette by stamping a fluffy mane
+    onto the tiger emoji silhouette (similar big-cat body proportions).
+    """
+    tiger = render_emoji_mask("\U0001F405")  # tiger
+    if tiger is None:
+        return None
+    ys, xs = np.where(tiger)
+    if len(ys) == 0:
+        return None
+    y0, y1 = ys.min(), ys.max() + 1
+    x0, x1 = xs.min(), xs.max() + 1
+    mask = tiger[y0:y1, x0:x1].astype(bool)
+    h, w = mask.shape
+
+    # Detect which side the head is on by comparing vertical extent
+    # of left vs right slabs (the head + ears tend to extend higher).
+    slab_w = max(1, int(w * 0.18))
+    left_top = mask[:, :slab_w].any(axis=1)
+    right_top = mask[:, -slab_w:].any(axis=1)
+    left_top_idx = np.argmax(left_top) if left_top.any() else h
+    right_top_idx = np.argmax(right_top) if right_top.any() else h
+    head_on_left = left_top_idx <= right_top_idx
+    head_x = int(w * 0.18) if head_on_left else int(w * 0.82)
+
+    # Vertical center near the upper part of the silhouette where the head sits.
+    col_pixels = np.where(mask[:, head_x])[0]
+    if len(col_pixels) > 0:
+        head_y = int(col_pixels.min() + (col_pixels.max() - col_pixels.min()) * 0.45)
+    else:
+        head_y = int(h * 0.40)
+
+    # Build a fluffy mane: one large core circle + four overlapping bumps.
+    mane_r = int(min(h, w) * 0.30)
+    yy, xx = np.ogrid[:h, :w]
+    mane = (yy - head_y) ** 2 + (xx - head_x) ** 2 <= mane_r ** 2
+    bump_r = max(3, int(mane_r * 0.55))
+    bumps = [
+        (-int(mane_r * 0.75), -int(mane_r * 0.75)),
+        (-int(mane_r * 0.75), int(mane_r * 0.75)),
+        (int(mane_r * 0.45), -int(mane_r * 0.85) * (1 if head_on_left else -1)),
+        (0, -int(mane_r * 0.95) * (1 if head_on_left else -1)),
+    ]
+    for dy, dx in bumps:
+        cy = head_y + dy
+        cx = head_x + dx
+        if 0 <= cy < h and 0 <= cx < w:
+            mane = mane | ((yy - cy) ** 2 + (xx - cx) ** 2 <= bump_r ** 2)
+
+    return mask | mane
+
+
+def stretch_giraffe_neck(mask, target_neck_rows=140):
+    """Replace the giraffe's narrow neck band with a much taller version of itself.
+
+    Crops to silhouette bounds first (so empty canvas rows above/below the
+    rendered emoji don't get treated as 'narrow neck'), detects the longest
+    contiguous narrow band in the upper half (the actual neck), then rebuilds
+    the silhouette with that band repeated vertically.
+    """
+    if not np.any(mask):
+        return mask
+
+    ys, xs = np.where(mask)
+    y0, y1 = ys.min(), ys.max() + 1
+    x0, x1 = xs.min(), xs.max() + 1
+    cropped = mask[y0:y1, x0:x1]
+
+    row_widths = cropped.sum(axis=1)
+    max_w = row_widths.max()
+    if max_w == 0:
+        return mask
+
+    threshold = max_w * 0.30
+    narrow = (row_widths > 0) & (row_widths < threshold)
+
+    bands = []
+    in_band = False
+    band_start = None
+    for i in range(len(narrow)):
+        if narrow[i] and not in_band:
+            band_start = i
+            in_band = True
+        elif not narrow[i] and in_band:
+            bands.append((band_start, i))
+            in_band = False
+    if in_band:
+        bands.append((band_start, len(narrow)))
+
+    if not bands:
+        return mask
+
+    upper_bands = [b for b in bands if b[0] < cropped.shape[0] // 2]
+    if not upper_bands:
+        upper_bands = bands
+
+    longest = max(upper_bands, key=lambda b: b[1] - b[0])
+    bs, be = longest
+    if be - bs < 3:
+        return mask
+
+    mid = (bs + be) // 2
+    template = cropped[mid:mid + 1]
+    above = cropped[:bs]
+    below = cropped[be:]
+    new_neck = np.tile(template, (target_neck_rows, 1))
+    return np.vstack([above, new_neck, below])
+
+
+def smooth_silhouette(mask, close_iter=2, open_iter=1):
+    """Clean up small bumps/protrusions on a silhouette via morphological ops."""
+    if not SCIPY_AVAILABLE or mask is None:
+        return mask
+    structure = np.ones((3, 3), dtype=bool)
+    out = ndimage.binary_closing(mask, structure=structure, iterations=close_iter)
+    out = ndimage.binary_opening(out, structure=structure, iterations=open_iter)
+    return out
+
+
+def get_silhouette_mask(source):
+    """Resolve a silhouette source token to a binary mask.
+
+    `source` can be a single-emoji string OR a special composed token like 'lion_body'.
+    """
+    if source == "lion_body":
+        return build_lion_body_mask()
+    return render_emoji_mask(source)
+
+
+def build_animal_silhouette_mesh(
+    source,
+    center_x,
+    bottom_y,
+    max_width_mm,
+    max_height_mm,
+    base_z,
+    height,
+    dilation=2,
+):
+    """Render a silhouette source (emoji or composed token) as a base-color mesh
+    sitting on bottom_y.
+    """
+    mask = get_silhouette_mask(source)
+    if mask is None:
+        return None
+
+    ys, xs = np.where(mask)
+    y0, y1 = ys.min(), ys.max() + 1
+    x0, x1 = xs.min(), xs.max() + 1
+    mask = mask[y0:y1, x0:x1]
+
+    if dilation > 0 and SCIPY_AVAILABLE:
+        mask = ndimage.binary_dilation(mask, iterations=dilation)
+
+    h_px, w_px = mask.shape
+    if w_px <= 0 or h_px <= 0:
+        return None
+
+    aspect = h_px / w_px
+    if aspect > (max_height_mm / max_width_mm):
+        target_h_mm = max_height_mm
+        target_w_mm = max_height_mm / aspect
+    else:
+        target_w_mm = max_width_mm
+        target_h_mm = max_width_mm * aspect
+
+    center_y = bottom_y + target_h_mm / 2
+    return mask_to_mesh(
+        mask,
+        center_x=center_x,
+        center_y=center_y,
+        target_width_mm=target_w_mm,
+        base_z=base_z,
+        height=height,
+        max_width_px=320,
+        min_pixel_mm=0.22,
+    )
+
+
+def build_top_silhouettes_mesh(animals, badge_width, badge_height, base_height):
+    """Build a combined silhouette mesh that extends upward from the badge top edge.
+
+    `animals` is one of: None, "two" (elephant + giraffe), "three" (elephant + giraffe + lion).
+    Returns a single concatenated mesh (or None if nothing produced).
+    """
+    if not animals or animals == "none":
+        return None
+
+    overlap = 4.0
+    bottom_y = badge_height / 2 - overlap
+
+    # Per-source dimension hints (max bounding box in mm).
+    DIMS = {
+        "\U0001F418": {"max_w": 36.0, "max_h": 30.0},   # elephant
+        "\U0001F992": {"max_w": 28.0, "max_h": 40.0},   # giraffe (tallest)
+        "\U0001F981": {"max_w": 34.0, "max_h": 30.0},   # lion (face)
+        "\U0001F405": {"max_w": 38.0, "max_h": 28.0},   # tiger
+        "\U0001F406": {"max_w": 38.0, "max_h": 28.0},   # leopard
+        "\U0001F98F": {"max_w": 40.0, "max_h": 28.0},   # rhinoceros
+        "\U0001F993": {"max_w": 38.0, "max_h": 28.0},   # zebra
+        "lion_body":  {"max_w": 42.0, "max_h": 30.0},   # composed full-body lion
+    }
+    # The right column gets bigger size hints when 'two' since there's more room.
+    DIMS_TWO = {
+        "\U0001F418": {"max_w": 50.0, "max_h": 32.0},
+        "\U0001F992": {"max_w": 32.0, "max_h": 40.0},
+    }
+
+    def entry(source, x_frac, dims_table):
+        d = dims_table.get(source, {"max_w": 36.0, "max_h": 30.0})
+        return {"source": source, "x_frac": x_frac, **d}
+
+    if animals == "two":
+        layout_entries = [
+            entry("\U0001F418", -0.25, DIMS_TWO),
+            entry("\U0001F992", 0.25, DIMS_TWO),
+        ]
+    elif animals == "three":
+        layout_entries = [
+            entry("\U0001F418", -0.30, DIMS),
+            entry("\U0001F992", 0.0, DIMS),
+            entry("\U0001F981", 0.30, DIMS),  # original head-only lion
+        ]
+    elif animals == "three_lion_body":
+        layout_entries = [
+            entry("\U0001F418", -0.30, DIMS),
+            entry("\U0001F992", 0.0, DIMS),
+            entry("lion_body", 0.30, DIMS),  # composed full-body lion
+        ]
+    elif animals == "three_tiger":
+        layout_entries = [
+            entry("\U0001F418", -0.30, DIMS),
+            entry("\U0001F992", 0.0, DIMS),
+            entry("\U0001F405", 0.30, DIMS),
+        ]
+    elif animals == "three_leopard":
+        layout_entries = [
+            entry("\U0001F418", -0.30, DIMS),
+            entry("\U0001F992", 0.0, DIMS),
+            entry("\U0001F406", 0.30, DIMS),
+        ]
+    elif animals == "three_rhino":
+        # Elephant + rhino shrunk ~25% and pulled slightly toward the middle.
+        layout_entries = [
+            {"source": "\U0001F418", "x_frac": -0.28, "max_w": 27.0, "max_h": 22.5},
+            {"source": "\U0001F992", "x_frac": 0.0, "max_w": 28.0, "max_h": 40.0},
+            {"source": "\U0001F98F", "x_frac": 0.28, "max_w": 30.0, "max_h": 21.0},
+        ]
+    elif animals == "three_zebra":
+        layout_entries = [
+            entry("\U0001F418", -0.30, DIMS),
+            entry("\U0001F992", 0.0, DIMS),
+            entry("\U0001F993", 0.30, DIMS),
+        ]
+    else:
+        return None
+
+    pieces = []
+    for ent in layout_entries:
+        mesh = build_animal_silhouette_mesh(
+            source=ent["source"],
+            center_x=badge_width * ent["x_frac"],
+            bottom_y=bottom_y,
+            max_width_mm=ent["max_w"],
+            max_height_mm=ent["max_h"],
+            base_z=0.0,
+            height=base_height,
+            dilation=ent.get("dilation", 2),
+        )
+        if mesh is not None:
+            pieces.append(mesh)
+
+    if not pieces:
+        return None
+    return concat_meshes(*pieces)
+
+
 def create_badge(
     url,
     output_file,
@@ -660,6 +969,7 @@ def create_badge(
     qr_height=0.6,
     qr_background_height=0.6,
     text_height=1.0,
+    animals=None,
 ):
     if badge_height < qr_size_mm + 2.5:
         raise ValueError("Badge height must be at least QR size + 2.5mm.")
@@ -696,6 +1006,14 @@ def create_badge(
         slot_width=slot_width,
         slot_side_margin=hole_qr_inset,
     )
+    silhouettes_mesh = build_top_silhouettes_mesh(
+        animals=animals,
+        badge_width=badge_width,
+        badge_height=badge_height,
+        base_height=base_height,
+    )
+    if silhouettes_mesh is not None:
+        base_mesh = concat_meshes(base_mesh, silhouettes_mesh)
     # Sink a tiny amount into the white underlay to avoid visual hover gaps.
     qr_mesh = build_qr_mesh(
         url=url,
@@ -1047,6 +1365,7 @@ def create_badges_from_members(
     qr_height,
     qr_background_height,
     text_height,
+    animals=None,
 ):
     with open(members_file, "r", encoding="utf-8") as fh:
         members = json.load(fh)
@@ -1087,6 +1406,7 @@ def create_badges_from_members(
             qr_height=qr_height,
             qr_background_height=qr_background_height,
             text_height=text_height,
+            animals=animals,
         )
 
 
@@ -1110,10 +1430,26 @@ if __name__ == "__main__":
     parser.add_argument("--members-file", default=None, help="Generate from team members JSON")
     parser.add_argument("--member", default=None, help="Single member name from members file")
     parser.add_argument("--only-oslo", action="store_true", help="Only members with goingToOslo=true")
+    parser.add_argument(
+        "--animals",
+        choices=[
+            "none",
+            "two",
+            "three",
+            "three_lion_body",
+            "three_tiger",
+            "three_leopard",
+            "three_rhino",
+            "three_zebra",
+        ],
+        default="three_rhino",
+        help="Top-edge silhouette layout. Default: 'three_rhino' (elephant + giraffe + rhino, tuned proportions).",
+    )
     parser.add_argument("-o", "--output", default=None, help="Output 3MF path (single badge mode)")
     args = parser.parse_args()
 
     qr_size_mm = parse_size(str(args.size))
+    animals_arg = None if args.animals == "none" else args.animals
     if args.members_file:
         create_badges_from_members(
             members_file=args.members_file,
@@ -1131,6 +1467,7 @@ if __name__ == "__main__":
             qr_height=args.qr_height,
             qr_background_height=args.qr_background_height,
             text_height=args.text_height,
+            animals=animals_arg,
         )
     else:
         if not args.url:
@@ -1154,4 +1491,5 @@ if __name__ == "__main__":
             qr_height=args.qr_height,
             qr_background_height=args.qr_background_height,
             text_height=args.text_height,
+            animals=animals_arg,
         )
