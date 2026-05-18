@@ -15,8 +15,16 @@ Output is written to `output/namebadges/`.
 
 ## Batch Generate
 
+Oslo:
+
 ```bash
 python generate_badge_2026_oslo.py --members-file team_members.json --only-oslo
+```
+
+Kenya (members with `goingToKenya: true` in `team_members.json`):
+
+```bash
+python generate_badge_2026_kenya.py --members-file team_members.json
 ```
 
 ## Conference Script Pattern

@@ -1351,7 +1351,6 @@ def member_label(member):
 
 def create_badges_from_members(
     members_file,
-    only_oslo,
     member_query,
     company,
     company_font,
@@ -1373,7 +1372,7 @@ def create_badges_from_members(
     if member_query:
         selected = [pick_member(members, member_query)]
     else:
-        selected = [m for m in members if m.get("goingToOslo")]
+        selected = [m for m in members if m.get("goingToKenya")]
 
     if not selected:
         raise ValueError("No members selected from the JSON file.")
@@ -1429,7 +1428,6 @@ if __name__ == "__main__":
     parser.add_argument("--text-height", type=float, default=1.0, help="Raised text height in mm")
     parser.add_argument("--members-file", default=None, help="Generate from team members JSON")
     parser.add_argument("--member", default=None, help="Single member name from members file")
-    parser.add_argument("--only-oslo", action="store_true", help="Only members with goingToOslo=true")
     parser.add_argument(
         "--animals",
         choices=[
@@ -1453,7 +1451,6 @@ if __name__ == "__main__":
     if args.members_file:
         create_badges_from_members(
             members_file=args.members_file,
-            only_oslo=args.only_oslo,
             member_query=args.member,
             company=args.company,
             company_font=args.company_font,

@@ -5,7 +5,8 @@
     "name": "Team Soapbox",
     "shape": null,
     "followLink": "https://ditto.pub/follow/npub10qdp2fc9ta6vraczxrcs8prqnv69fru2k6s2dj48gqjcylulmtjsg9arpj",
-    "goingToOslo": false
+    "goingToOslo": false,
+    "goingToKenya": false
   },
   {
     "pubkey": "0461fcbecc4c3374439932d6b8f11269ccdb7cc973ad7a50ae362db135a474dd",
@@ -13,7 +14,8 @@
     "name": "Alex Gleason",
     "shape": "❤️‍🔥",
     "followLink": "https://ditto.pub/follow/npub1q3sle0kvfsehgsuexttt3ugjd8xdklxfwwkh559wxckmzddywnws6cd26p",
-    "goingToOslo": true
+    "goingToOslo": true,
+    "goingToKenya": true
   },
   {
     "pubkey": "932614571afcbad4d17a191ee281e39eebbb41b93fac8fd87829622aeb112f4d",
@@ -21,7 +23,8 @@
     "name": "MK Fain",
     "shape": "🌆",
     "followLink": "https://ditto.pub/follow/npub1jvnpg4c6ljadf5t6ry0w9q0rnm4mksde87kglkrc993z46c39axsgq89sc",
-    "goingToOslo": true
+    "goingToOslo": true,
+    "goingToKenya": true
   },
   {
     "pubkey": "3f770d65d3a764a9c5cb503ae123e62ec7598ad035d836e2a810f3877a745b24",
@@ -29,7 +32,8 @@
     "name": "Derek Ross",
     "shape": "🤙",
     "followLink": "https://ditto.pub/follow/npub18ams6ewn5aj2n3wt2qawzglx9mr4nzksxhvrdc4gzrecw7n5tvjqctp424",
-    "goingToOslo": true
+    "goingToOslo": true,
+    "goingToKenya": false
   },
   {
     "pubkey": "9fce3aea32b35637838fb45b75be32595742e16bb3e4742cc82bb3d50f9087e6",
@@ -37,7 +41,8 @@
     "name": "heatherlarson",
     "shape": "😻",
     "followLink": "https://ditto.pub/follow/npub1nl8r463jkdtr0qu0k3dht03jt9t59cttk0j8gtxg9wea2russlnq2zf9d0",
-    "goingToOslo": false
+    "goingToOslo": false,
+    "goingToKenya": false
   },
   {
     "pubkey": "86184109eae937d8d6f980b4a0b46da4ef0d983eade403ee1b4c0b6bde238b47",
@@ -45,7 +50,8 @@
     "name": "chad",
     "shape": "🛡️",
     "followLink": "https://ditto.pub/follow/npub1scvyzz02ayma34hesz62pdrd5nhsmxp74hjq8msmfs9khh3r3drsnw68d8",
-    "goingToOslo": true
+    "goingToOslo": true,
+    "goingToKenya": false
   },
   {
     "pubkey": "47259076c85f9240e852420d7213c95e95102f1de929fb60f33a2c32570c98c4",
@@ -53,7 +59,8 @@
     "name": "Patrick PReis",
     "shape": null,
     "followLink": "https://ditto.pub/follow/npub1gujeqakgt7fyp6zjggxhyy7ft623qtcaay5lkc8n8gkry4cvnrzqd3f67z",
-    "goingToOslo": false
+    "goingToOslo": false,
+    "goingToKenya": false
   },
   {
     "pubkey": "ce97367c75d7d91fb9bc3bc6ff5bb3bdb52c18941bfce2f368616dcbf0adfd2f",
@@ -61,7 +68,8 @@
     "name": "Danidfra",
     "shape": "🤯",
     "followLink": "https://ditto.pub/follow/npub1e6tnvlr46lv3lwdu80r07kanhk6jcxy5r07w9umgv9kuhu9dl5hsk9gqft",
-    "goingToOslo": true
+    "goingToOslo": true,
+    "goingToKenya": false
   },
   {
     "pubkey": "0574536d3ef4d65faf95b42393610b8475d22f4c294649d46c50d5d36f75267c",
@@ -69,7 +77,8 @@
     "name": "shantaram",
     "shape": null,
     "followLink": "https://ditto.pub/follow/npub1q469xmf77nt9ltu4ks3excgts36ayt6v99ryn4rv2r2axmm4ye7q3vnkqp",
-    "goingToOslo": false
+    "goingToOslo": false,
+    "goingToKenya": true
   },
   {
     "pubkey": "be7358c4fe50148cccafc02ea205d80145e253889aa3958daafa8637047c840e",
@@ -77,7 +86,8 @@
     "name": "lemon",
     "shape": "💔",
     "followLink": "https://ditto.pub/follow/npub1hee433872q2gen90cqh2ypwcq9z7y5ugn23etrd2l2rrwpruss8qwmrsv6",
-    "goingToOslo": true
+    "goingToOslo": true,
+    "goingToKenya": false
   },
   {
     "pubkey": "2093baa8621c5b255e8f4fc2c6fdfc10d8a5598a25517664efaba860735f1030",
@@ -85,7 +95,8 @@
     "name": "Sam",
     "shape": "🏔️",
     "followLink": "https://ditto.pub/follow/npub1yzfm42rzr3dj2h50flpvdl0uzrv22kv2y4ghve804w5xqu6lzqcqkyfxu5",
-    "goingToOslo": true
+    "goingToOslo": true,
+    "goingToKenya": true
   },
   {
     "pubkey": "8f53782e8693e88afb710b6d68182ad973973c8822caa237bb60288b125673ca",
@@ -93,7 +104,8 @@
     "name": "Morgan Maksoud-Miller",
     "shape": "🪐",
     "followLink": "https://ditto.pub/follow/npub13afhst5xj05g47m3pdkksxp2m9eew0ygyt92ydamvq5gkyjkw09q33hxdh",
-    "goingToOslo": true
+    "goingToOslo": true,
+    "goingToKenya": false
   },
   {
     "pubkey": "c839bc85846f24fc6b777548fe654672377f4cc2a04cab19cddec75b2f8b4dbd",
@@ -101,7 +113,8 @@
     "name": "Quilly",
     "shape": null,
     "followLink": "https://ditto.pub/follow/npub1equmepvyduj0c6mhw4y0ue2xwgmh7nxz5px2kxwdmmr4ktutfk7shq592d",
-    "goingToOslo": false
+    "goingToOslo": false,
+    "goingToKenya": false
   },
   {
     "pubkey": "19c47c1ae793f4ab2c29086fc9da7498a3fe869d3bc6584a9f9067e0b40a65e2",
@@ -109,6 +122,7 @@
     "name": "Clarii",
     "shape": "🩷",
     "followLink": "https://ditto.pub/follow/npub1r8z8cxh8j062ktpfpphunkn5nz3lap5a80r9sj5ljpn7pdq2vh3qfyalaz",
-    "goingToOslo": true
+    "goingToOslo": true,
+    "goingToKenya": false
   }
 ]
