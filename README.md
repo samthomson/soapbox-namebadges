@@ -33,11 +33,12 @@ Create one primary script per conference and evolve that script over time.
 | --- | --- | --- | --- | --- | --- |
 | Oslo 2026 | `generate_badge_2026_oslo.py` | T-purple | White | Orange | Gurple |
 | Czech 2026 (Praha) | `generate_badge_2026_praha.py` | T-blue | White | Orange | Green |
-| Kenya (planned) | `generate_badge_<year>_kenya.py` | Wood | Orange | Red | Green |
+| Kenya 2026 | `generate_badge_2026_kenya.py` | Wood brown | Orange | Green | Red |
 
 ## Files
 
 - `generate_badge_2026_oslo.py` - primary Oslo 2026 badge generator
 - `generate_badge_2026_praha.py` - Praha variant scaffold copied from Oslo
+- `generate_badge_2026_kenya.py` - Kenya 2026 badge generator (elephant + giraffe + rhino silhouettes)
 - `badge_qr_mesh.py` - shared QR mesh utility used by conference generators
 - `team_members.json` - input data for batch generation
